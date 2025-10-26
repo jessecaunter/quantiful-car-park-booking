@@ -42,6 +42,7 @@ const statements = {
     INSERT INTO bookings (date, employee_name, employee_email)
     VALUES (?, ?, ?)
   `),
+  deleteBooking: db.prepare('DELETE FROM bookings WHERE date = ?'),
 };
 
 /**
@@ -107,6 +108,15 @@ export function createBooking(input: CreateBookingInput): Booking {
   });
 
   return transaction();
+}
+
+/**
+ * Delete a booking by date
+ * Returns true if a booking was deleted, false if no booking existed
+ */
+export function deleteBooking(date: string): boolean {
+  const info = statements.deleteBooking.run(date);
+  return info.changes > 0;
 }
 
 /**
