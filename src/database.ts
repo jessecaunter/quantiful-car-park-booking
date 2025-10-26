@@ -9,6 +9,12 @@ export type Booking = {
   created_at: string;
 }
 
+export type CreateBookingInput = {
+  date: string;
+  employee_name?: string;
+  employee_email?: string;
+}
+
 // Initialize database
 const db = new Database(path.join(__dirname, '../bookings.db'));
 
@@ -31,7 +37,24 @@ db.exec(`
 const statements = {
   getAllBookings: db.prepare('SELECT * FROM bookings ORDER BY date ASC'),
   getBookingByDate: db.prepare('SELECT * FROM bookings WHERE date = ?'),
+  getBookingById: db.prepare('SELECT * FROM bookings WHERE id = ?'),
+  createBooking: db.prepare(`
+    INSERT INTO bookings (date, employee_name, employee_email)
+    VALUES (?, ?, ?)
+  `),
 };
+
+/**
+ * Validate date format (YYYY-MM-DD)
+ */
+function isValidDateFormat(date: string): boolean {
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(date)) return false;
+  
+  // Check it's a valid calendar date
+  const parsedDate = new Date(date);
+  return parsedDate.toISOString().startsWith(date);
+}
 
 /**
  * Get all bookings ordered by date
@@ -45,6 +68,45 @@ export function getAllBookings(): Booking[] {
  */
 export function getBookingByDate(date: string): Booking | undefined {
   return statements.getBookingByDate.get(date) as Booking | undefined;
+}
+
+/**
+ * Create a new booking with transaction-based double-booking prevention
+ * 
+ * Uses SQLite's UNIQUE constraint and transactions to ensure atomicity.
+ * If two requests try to book the same date simultaneously, one will succeed
+ * and the other will fail with a constraint violation.
+ */
+export function createBooking(input: CreateBookingInput): Booking {
+  const { date, employee_name, employee_email } = input;
+
+  // Validate date format
+  if (!isValidDateFormat(date)) {
+    throw new Error('Date must be in YYYY-MM-DD format');
+  }
+
+  // Use a transaction to ensure atomicity
+  const transaction = db.transaction(() => {
+    try {
+      const info = statements.createBooking.run(
+        date,
+        employee_name || null,
+        employee_email || null
+      );
+      
+      // Retrieve the created booking
+      const booking = statements.getBookingById.get(info.lastInsertRowid) as Booking;
+      return booking;
+    } catch (error: any) {
+      // SQLite error code for UNIQUE constraint violation
+      if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        throw new Error(`Date ${date} is already booked`);
+      }
+      throw error;
+    }
+  });
+
+  return transaction();
 }
 
 /**
