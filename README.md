@@ -53,8 +53,8 @@ npm run dev
 
 Once both servers are running:
 
-- **Frontend UI:** [http://localhost:5173/]
-- **Backend API:** [http://localhost:3000/api/bookings]
+- **Frontend UI:** [http://localhost:5173/](http://localhost:5173/)
+- **Backend API:** [http://localhost:3000/api/bookings](http://localhost:3000/api/bookings)
 
 ---
 
@@ -69,7 +69,7 @@ Once both servers are running:
 
 ### Frontend
 
-- **React 19 -** Component-based UI library
+- **React -** Component-based UI library
 - **TypeScript -** Type safety throughout the frontend
 - **Vite -** Fast build tool and dev server (~1s startup vs 10-30s with CRA)
 - **Axios -** HTTP client for API communication
