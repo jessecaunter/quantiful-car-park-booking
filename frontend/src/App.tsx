@@ -24,7 +24,7 @@ function App() {
       setError('')
       const data = await bookingApi.getAllBookings()
       setBookings(data)
-    } catch (err: any) {
+    } catch (err) {
       setError('Failed to load bookings. Please try again.')
       console.error('Error fetching bookings:', err)
     } finally {
@@ -55,11 +55,16 @@ function App() {
       // Reset form data and refresh bookings
       setFormData({ date: '', employee_name: '', employee_email: '' })
       await fetchBookings()
-    } catch (err: any) {
-      if (err.response?.status === 409) {
-        setError('This date is already booked. Please choose another date.')
-      } else if (err.response?.status === 400) {
-        setError('Invalid date format. Please use a valid date.')
+    } catch (err) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { status: number } }
+        if (axiosError.response?.status === 409) {
+          setError('This date is already booked. Please choose another date.')
+        } else if (axiosError.response?.status === 400) {
+          setError('Invalid date format. Please use a valid date.')
+        } else {
+          setError('Failed to create booking. Please try again.')
+        }
       } else {
         setError('Failed to create booking. Please try again.')
       }
@@ -78,7 +83,7 @@ function App() {
       setError('')
       await bookingApi.deleteBooking(date)
       await fetchBookings()
-    } catch (err: any) {
+    } catch (err) {
       setError('Failed to delete booking. Please try again.')
       console.error('Error deleting booking:', err)
     }
